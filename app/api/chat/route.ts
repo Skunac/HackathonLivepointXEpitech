@@ -3,7 +3,7 @@ import { model } from "@/lib/langchain/model";
 import { basePromptTemplate } from "@/lib/langchain/prompts/basePrompt";
 import { checkPoliteness } from "@/lib/utils/politenessDetector";
 // import { isSimpleQuery, generateSearchUrl } from "@/lib/utils/simplicityDetector";
-// import { isTechnicalQuestion } from "@/lib/utils/domainClassifier";
+import { isTechnicalQuestion } from "@/lib/langchain/chains/techFilterChain";
 import { StructuredOutputParser } from "langchain/output_parsers";
 import { z } from "zod";
 
