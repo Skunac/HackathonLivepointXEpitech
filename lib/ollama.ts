@@ -5,7 +5,7 @@ import { StringOutputParser } from "@langchain/core/output_parsers";
 // Create Ollama instance
 const ollama = new Ollama({
     baseUrl: process.env.OLLAMA_BASE_URL || "http://localhost:11434",
-    model: "llama3", // Change to your preferred model
+    model: "deepseek-r1:7b", // Change to your preferred model
     temperature: 0.7,
 });
 
