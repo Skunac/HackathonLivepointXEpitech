@@ -10,7 +10,7 @@ export default async function ChatPage() { // ← ici c'est maintenant async
             {/* Header */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center pt-6">
                 <h1 className="text-4xl font-bold text-maroon-800 bg-clip-text text-transparent bg-gradient-to-r from-red-800 to-red-900 mb-4">
-                    Bienvenue {pseudo} 🌿
+                    Bienvenue 🌿
                 </h1>
 
                 {/* Tamagotchi affiché juste sous le pseudo */}
