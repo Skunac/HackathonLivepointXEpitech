@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface Message {
     content: string;
@@ -8,10 +8,27 @@ interface Message {
     isError?: boolean;
 }
 
-export default function ChatUI() {
+interface PointsUpdate {
+    delta: number;
+    newTotal: number;
+    reason?: string;
+}
+
+interface ChatUIProps {
+    initialPoints?: number;
+    onPointsUpdate?: (newPoints: number) => void;
+}
+
+export default function ChatUI({ initialPoints = 100, onPointsUpdate }: ChatUIProps) {
     const [input, setInput] = useState("");
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [points, setPoints] = useState(initialPoints);
+
+    // Initialize points from props
+    useEffect(() => {
+        setPoints(initialPoints);
+    }, [initialPoints]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -44,10 +61,31 @@ export default function ChatUI() {
                     ...prev,
                     { content: data.response, role: "assistant" },
                 ]);
+
+                // Update points if included in the response
+                if (data.metadata?.points) {
+                    updatePoints(data.metadata.points);
+                }
             } else {
+                // Handle error response
+                let errorMessage = data.error || "An error occurred";
+
+                // Check if there's a points update in the error response
+                if (data.pointsUpdate) {
+                    const pointsUpdate: PointsUpdate = data.pointsUpdate;
+
+                    // Update the error message to include points information
+                    if (pointsUpdate.reason) {
+                        errorMessage += `\n\n${pointsUpdate.reason} (${pointsUpdate.delta} points)`;
+                    }
+
+                    // Update points state
+                    updatePoints(pointsUpdate.newTotal);
+                }
+
                 setMessages((prev) => [
                     ...prev,
-                    { content: data.error || "An error occurred", role: "assistant", isError: true },
+                    { content: errorMessage, role: "assistant", isError: true },
                 ]);
             }
         } catch (error) {
@@ -61,6 +99,14 @@ export default function ChatUI() {
             ]);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    // Function to update points state and notify parent
+    const updatePoints = (newPoints: number) => {
+        setPoints(newPoints);
+        if (onPointsUpdate) {
+            onPointsUpdate(newPoints);
         }
     };
 

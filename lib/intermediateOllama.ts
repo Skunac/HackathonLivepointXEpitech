@@ -52,7 +52,7 @@ EXAMPLES OF "SHOW ME" QUESTIONS THAT ARE VALID TECHNICAL REQUESTS:
 
 Your task is to categorize this request using EXACTLY ONE of these formats:
 1. "ERROR:NO_SUBSTANCE" - For greetings, single words, or non-technical/low-effort messages
-2. "LMGTFY:" followed by search terms - For simple questions easily answered via search
+2. "LMGTFY:" followed by search terms - For simple questions easily answered via search or not technical questions
 3. "DOC:" followed by technology name and URL - For questions about specific documentation
 4. "MAN:" followed by command name - For bash/terminal command questions
 5. "GOOD" - ONLY for genuine technical questions meeting ALL criteria above
