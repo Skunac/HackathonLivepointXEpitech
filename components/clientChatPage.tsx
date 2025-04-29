@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, SetStateAction} from 'react';
 import ChatUI from "@/components/chatUi";
 import Tamagotchi from "@/components/Tamagotchi";
-import { getCookie } from 'cookies-next';
+import {getCookie} from 'cookies-next';
 
-export default function ClientChatPage({ initialPoints = 100 }) {
+export default function ClientChatPage({initialPoints = 100}) {
     // State to track points
     const [points, setPoints] = useState(initialPoints);
 
@@ -32,8 +32,7 @@ export default function ClientChatPage({ initialPoints = 100 }) {
         return () => clearInterval(intervalId);
     }, [points]);
 
-    // Function to update points (to be passed to ChatUI)
-    const handlePointsUpdate = (newPoints) => {
+    const handlePointsUpdate = (newPoints: SetStateAction<number>) => {
         setPoints(newPoints);
     };
 
