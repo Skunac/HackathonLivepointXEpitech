@@ -17,7 +17,7 @@ export default function Tamagotchi({ points }: TamagotchiProps) {
                 alt="Tamagotchi"
                 className="w-40 h-40"
             />
-            <p className="mt-2 text-center font-semibold">
+            <p className="mt-2 text-center font-semibold text-black">
                 🌿 Ton score Green IT : {points}
             </p>
         </div>
