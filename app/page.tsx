@@ -10,7 +10,7 @@ export default async function ChatPage() {
             {/* Header */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 text-center">
                 <h1 className="text-4xl font-bold text-maroon-800 bg-clip-text text-transparent bg-gradient-to-r from-red-800 to-red-900 mb-4">
-                    Bienvenue 🌿
+                    Tamagotchat
                 </h1>
             </div>
 
