@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@langchain/community": "^0.3.41",
+    "@langchain/ollama": "^0.2.0",
     "dotenv": "^16.5.0",
     "langchain": "^0.3.24",
     "next": "15.3.1",
