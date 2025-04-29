@@ -19,16 +19,16 @@ const parser = StructuredOutputParser.fromZodSchema(classificationSchema);
 const classifierPrompt = ChatPromptTemplate.fromTemplate(`
 You are a specialized filter that determines if a question is related to technical topics, specifically computer science and programming.
 
-Technical domains include: ${technicalDomains.join(", ")}
+Technical domains include: \${technicalDomains.join(", ")}
 
-Technical keywords include: ${technicalKeywords.join(", ")}
+Technical keywords include: \${technicalKeywords.join(", ")}
 
 Question: {question}
 
 Determine if this question is related to a technical domain. 
 Consider both explicit domain references and implicit technical nature.
 
-${parser.getFormatInstructions()}
+\${parser.getFormatInstructions()}
 `);
 
 // Create the classification chain
@@ -49,7 +49,7 @@ export async function classifyQuestionDomain(question: string) {
     return await domainClassifier.invoke(question);
   } catch (error) {
     console.error("Error classifying question domain:", error);
- 
+
     // Default to technical if there's an error, to avoid blocking legitimate questions
     return {
       isTechnical: true,
