@@ -19,24 +19,36 @@ STRICT CRITERIA FOR TECHNICAL QUESTIONS:
 3. Must be specific enough to be answerable with technical knowledge
 4. Must not be easily answerable with a basic web search
 
+IMPORTANT: Framework and library-specific questions ARE technical questions, especially questions about:
+- Symfony, Laravel, Django, Flask, Spring, Express, Nestjs, Rails (web frameworks)
+- React, Vue, Angular, Svelte (frontend frameworks)
+- Middleware, plugins, hooks, components, or implementation examples
+
 Examples of NON-TECHNICAL questions (should NOT be "GOOD"):
 - "Hello"
 - "Test"
 - "How are you"
 - "What's up"
-- "caca"
-- "poop"
 - Any single word request
 - Any request with less than 5 characters
 - Any greeting or chitchat
 - Any profanity or inappropriate content
-- Any request to "do X" without specific technical context
+- Any request with no clear technical context
 
-Examples of PROPER TECHNICAL questions (can be "GOOD"):
+Examples of PROPER TECHNICAL questions (should be "GOOD"):
 - "How do I implement a binary search tree in Python?"
 - "What's the difference between RESTful and GraphQL APIs?"
 - "My MongoDB query is slow, how can I optimize: db.users.find({age: {$gt: 30}})"
 - "How do I fix this TypeScript error: Type 'string' is not assignable to type 'number'"
+- "Show me an example of Symfony middleware"
+- "How to create middleware in Express.js"
+- "Can you explain Laravel middleware?"
+- "What's the best way to implement JWT authentication in Django?"
+
+EXAMPLES OF "SHOW ME" QUESTIONS THAT ARE VALID TECHNICAL REQUESTS:
+- "Show me how to write a React component" - GOOD
+- "Show me an example of Symfony middleware" - GOOD
+- "Show me how to create a Docker container" - GOOD
 
 Your task is to categorize this request using EXACTLY ONE of these formats:
 1. "ERROR:NO_SUBSTANCE" - For greetings, single words, or non-technical/low-effort messages

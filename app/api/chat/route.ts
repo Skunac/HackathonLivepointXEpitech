@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getOllamaResponse } from "@/lib/ollama";
 import { checkPoliteness } from "@/lib/utils/politenessDetector";
 import { getIntermediateResponse } from "@/lib/intermediateOllama";
+import {analyzeUserQuery} from "@/lib/utils/letmegooglethat";
 
 // Define point penalties for different error types
 const POINT_PENALTIES = {
     POLITENESS: -5,         // Penalty for sending just a greeting
     GOOGLEABLE: -10,        // Penalty for asking easily googleable questions
     DOCUMENTATION: -5,      // Penalty for questions that should use documentation
+    MANPAGE: -5,            // Penalty for man page requests
     NO_SUBSTANCE: -3,       // Penalty for low-effort messages
     INVALID_FORMAT: -2      // Penalty for sending invalid request format
 };
@@ -62,7 +64,7 @@ export async function POST(req: NextRequest) {
 
             response = NextResponse.json(
                 {
-                    error: "Please ask a technical question",
+                    error: "Don't bother with politeness, it's wasting a lot of ressources so please be direct",
                     pointsUpdate: {
                         delta: pointDelta,
                         newTotal: newPoints,
@@ -82,69 +84,149 @@ export async function POST(req: NextRequest) {
             return response;
         }
 
-        // Second check: Agent check for relevance/Google-ability/documentation
-        const intermediateResponse = await getIntermediateResponse(message);
+        // New approach: Use analyzeUserQuery for advanced classification
+        const analysisResult = analyzeUserQuery(message);
 
-        // Only proceed with full response if we get "GOOD"
-        if (intermediateResponse === "GOOD") {
-            // If we've passed both checks, proceed with the full Ollama response
-            const finalResponse = await getOllamaResponse(message);
+        // Log the analysis result
+        console.log(`Query analysis for "${message.substring(0, 50)}...": ${analysisResult.action}`);
 
-            // Add logging to help debug responses
-            console.log("Final response length:", finalResponse.length);
-            console.log(`Request from ${pseudo} (${currentPoints} points) - Successful query`);
-
-            return NextResponse.json({
-                response: finalResponse,
-                metadata: {
-                    filtered: false,
-                    processedLength: finalResponse.length,
-                    points: currentPoints // Include current points in the response
-                }
-            });
-        } else {
-            // Determine the filter reason and point penalty
-            if (intermediateResponse.startsWith("This could be easily")) {
+        // Based on the analysis, determine how to handle the request
+        switch (analysisResult.action) {
+            case 'google':
+                // Handle googleable questions
                 filterReason = "googleable";
                 pointDelta = POINT_PENALTIES.GOOGLEABLE;
-            } else if (intermediateResponse.startsWith("Please refer to")) {
+                newPoints = Math.max(0, currentPoints + pointDelta);
+
+                response = NextResponse.json(
+                    {
+                        error: `This could be easily answered with a Google search: ${analysisResult.redirectUrl}`,
+                        pointsUpdate: {
+                            delta: pointDelta,
+                            newTotal: newPoints,
+                            reason: getPointPenaltyReason(filterReason)
+                        },
+                        metadata: {
+                            filtered: true,
+                            filterReason: filterReason
+                        }
+                    },
+                    { status: 400 }
+                );
+                break;
+
+            case 'docs':
+                // Handle documentation requests
                 filterReason = "documentation";
                 pointDelta = POINT_PENALTIES.DOCUMENTATION;
-            } else {
-                filterReason = "no_substance";
-                pointDelta = POINT_PENALTIES.NO_SUBSTANCE;
-            }
+                newPoints = Math.max(0, currentPoints + pointDelta);
 
-            // Calculate new points
-            newPoints = Math.max(0, currentPoints + pointDelta);
-
-            console.log(`Request from ${pseudo} (${currentPoints} → ${newPoints} points) - ${filterReason}`);
-
-            // Create the response
-            response = NextResponse.json(
-                {
-                    error: intermediateResponse,
-                    pointsUpdate: {
-                        delta: pointDelta,
-                        newTotal: newPoints,
-                        reason: getPointPenaltyReason(filterReason)
+                response = NextResponse.json(
+                    {
+                        error: `Please refer to the official ${analysisResult.docSource} documentation: ${analysisResult.redirectUrl}`,
+                        pointsUpdate: {
+                            delta: pointDelta,
+                            newTotal: newPoints,
+                            reason: getPointPenaltyReason(filterReason)
+                        },
+                        metadata: {
+                            filtered: true,
+                            filterReason: filterReason
+                        }
                     },
-                    metadata: {
-                        filtered: true,
-                        filterReason: filterReason
-                    }
-                },
-                { status: 400 }
-            );
+                    { status: 400 }
+                );
+                break;
 
+            case 'manpage':
+                // Handle man page requests
+                filterReason = "manpage";
+                pointDelta = POINT_PENALTIES.MANPAGE;
+                newPoints = Math.max(0, currentPoints + pointDelta);
+
+                response = NextResponse.json(
+                    {
+                        error: `Please refer to the manual page for '${analysisResult.command}'. You can view it by typing 'man ${analysisResult.command}' in your terminal or visit: ${analysisResult.redirectUrl}`,
+                        pointsUpdate: {
+                            delta: pointDelta,
+                            newTotal: newPoints,
+                            reason: "Simple command requests cost points"
+                        },
+                        metadata: {
+                            filtered: true,
+                            filterReason: filterReason
+                        }
+                    },
+                    { status: 400 }
+                );
+                break;
+
+            case 'answer':
+                // This is a valid technical question - proceed with Ollama
+                // Double-check with the intermediate model as a fallback
+                const intermediateResponse = await getIntermediateResponse(message);
+
+                if (intermediateResponse === "GOOD") {
+                    // If both analyzers agree it's a good question, process it
+                    const finalResponse = await getOllamaResponse(message);
+
+                    console.log("Final response length:", finalResponse.length);
+                    console.log(`Request from ${pseudo} (${currentPoints} points) - Successful query`);
+
+                    return NextResponse.json({
+                        response: finalResponse,
+                        metadata: {
+                            filtered: false,
+                            processedLength: finalResponse.length,
+                            points: currentPoints // Include current points in the response
+                        }
+                    });
+                } else {
+                    // The intermediate model disagrees - use its categorization
+                    if (intermediateResponse.startsWith("This could be easily")) {
+                        filterReason = "googleable";
+                        pointDelta = POINT_PENALTIES.GOOGLEABLE;
+                    } else if (intermediateResponse.startsWith("Please refer to")) {
+                        filterReason = "documentation";
+                        pointDelta = POINT_PENALTIES.DOCUMENTATION;
+                    } else {
+                        filterReason = "no_substance";
+                        pointDelta = POINT_PENALTIES.NO_SUBSTANCE;
+                    }
+
+                    newPoints = Math.max(0, currentPoints + pointDelta);
+
+                    response = NextResponse.json(
+                        {
+                            error: intermediateResponse,
+                            pointsUpdate: {
+                                delta: pointDelta,
+                                newTotal: newPoints,
+                                reason: getPointPenaltyReason(filterReason)
+                            },
+                            metadata: {
+                                filtered: true,
+                                filterReason: filterReason
+                            }
+                        },
+                        { status: 400 }
+                    );
+                }
+                break;
+        }
+
+        // For anything other than 'answer' that proceeds directly, set the cookie and return
+        if (response) {
             // Set the updated points cookie
             response.cookies.set("points", newPoints.toString(), {
                 path: "/",
                 maxAge: 60 * 60 * 24 * 7,
             });
 
+            console.log(`Request from ${pseudo} (${currentPoints} → ${newPoints} points) - ${filterReason}`);
             return response;
         }
+
     } catch (error) {
         console.error("Error in chat API route:", error);
         return NextResponse.json(
@@ -166,6 +248,8 @@ function getPointPenaltyReason(filterReason: string): string {
             return "Asking easily googleable questions costs points";
         case "documentation":
             return "Questions that should use documentation cost points";
+        case "manpage":
+            return "Simple command requests cost points";
         case "no_substance":
             return "Low-effort messages cost points";
         case "politeness":

@@ -83,7 +83,7 @@ export function analyzeUserQuery(query: string): {
     const bashCommands = [
         "ls", "cd", "mkdir", "touch", "cp", "mv", "rm", "chmod", "chown", "grep",
         "find", "sed", "awk", "cat", "less", "more", "head", "tail", "sort", "uniq",
-        "wc", "diff", "ssh", "scp", "rsync", "curl", "wget", "tar", "zip", "unzip",
+        "wc","pwd", "diff", "ssh", "scp", "rsync", "curl", "wget", "tar", "zip", "unzip",
         "ps", "top", "kill", "systemctl", "journalctl", "df", "du", "free", "ifconfig",
         "ip", "netstat", "ping", "traceroute", "nslookup", "dig", "cron", "useradd",
         "usermod", "passwd", "sudo", "su", "which", "alias", "echo", "env", "export"
