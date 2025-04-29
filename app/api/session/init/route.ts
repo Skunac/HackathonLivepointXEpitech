@@ -18,9 +18,7 @@ export async function GET() {
         JSON.stringify({ session: "created", pseudo, points }),
         {
             status: 200,
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
         }
     );
 

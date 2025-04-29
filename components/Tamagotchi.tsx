@@ -1,29 +1,13 @@
-'use client';
+interface TamagotchiProps {
+    points: number;
+}
 
-import { useEffect, useState } from "react";
-
-export default function Tamagotchi() {
-    const [points, setPoints] = useState<number>(100);
-
-    useEffect(() => {
-        fetch("/api/session/score")
-            .then((res) => res.json())
-            .then((data) => {
-                setPoints(data.points);
-            })
-            .catch((err) => console.error("Erreur récupération points:", err));
-    }, []);
-
+export default function Tamagotchi({ points }: TamagotchiProps) {
     const getTamagotchiImage = () => {
-        if (points >= 80) {
-            return "tamagotchi/gold-svgrepo-com.svg";
-        } else if (points >= 50) {
-            return "/tamagotchi/insurance-svgrepo-com.svg";
-        } else if (points >= 20) {
-            return "/tamagotchi/loss-svgrepo-com.svg";
-        } else {
-            return "/tamagotchi/stock-svgrepo-com.svg";
-        }
+        if (points >= 80) return "/tamagotchi/gold-svgrepo-com.svg";
+        if (points >= 50) return "/tamagotchi/insurance-svgrepo-com.svg";
+        if (points >= 20) return "/tamagotchi/loss-svgrepo-com.svg";
+        return "/tamagotchi/stock-svgrepo-com.svg";
     };
 
     return (
@@ -34,7 +18,7 @@ export default function Tamagotchi() {
                 className="w-40 h-40"
             />
             <p className="mt-2 text-center font-semibold">
-                Ton score Green IT : {points}
+                🌿 Ton score Green IT : {points}
             </p>
         </div>
     );
