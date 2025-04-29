@@ -12,20 +12,20 @@ You are a technical assistant specialized in computer science. You must follow t
 7. Never use polite formulas in your responses.
 
 Your response must always follow this format:
-{
+\\{
  "content": "Your concise answer here",
  "confidence": percentage from 0 to 100,
  "redirections": [
-   {
+   \\{
      "type": "google/documentation/letmegooglothat/history",
      "url": "Relevant URL",
      "message": "Explanatory message about the redirection"
-   }
+   \\}
  ]
-}
+\\}
 `;
 
 export const basePromptTemplate = ChatPromptTemplate.fromMessages([
- SystemMessagePromptTemplate.fromTemplate(systemTemplate),
- HumanMessagePromptTemplate.fromTemplate("{input}")
+  SystemMessagePromptTemplate.fromTemplate(systemTemplate),
+  HumanMessagePromptTemplate.fromTemplate("{input}")
 ]);

@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { StructuredOutputParser } from "langchain/output_parsers";
+import { z } from "zod";
+import { ChatMessage } from "@/lib/types";
+
 import { model } from "@/lib/langchain/model";
 import { basePromptTemplate } from "@/lib/langchain/prompts/basePrompt";
 import { checkPoliteness } from "@/lib/utils/politenessDetector";
+import { filterTechnicalQuestions } from "@/lib/langchain/chains/techFilterChain";
+// Import other utility functions as needed
 // import { isSimpleQuery, generateSearchUrl } from "@/lib/utils/simplicityDetector";
-import { isTechnicalQuestion } from "@/lib/langchain/chains/techFilterChain";
-import { StructuredOutputParser } from "langchain/output_parsers";
-import { z } from "zod";
 
 // Define the formatted response schema
 const responseParser = StructuredOutputParser.fromZodSchema(
@@ -24,27 +27,56 @@ const responseParser = StructuredOutputParser.fromZodSchema(
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages } = await req.json();
+    const body = await req.json();
+    let messages: ChatMessage[] = [];
  
-    if (!messages || !Array.isArray(messages)) {
+    // Handle both message formats
+    if (body.messages && Array.isArray(body.messages)) {
+      // Standard format: { messages: [...] }
+      messages = body.messages;
+
+      // Validate each message in the array
+      for (const msg of messages) {
+        if (!msg.role || !msg.content || (msg.role !== 'user' && msg.role !== 'assistant')) {
+          return NextResponse.json(
+            { error: "Invalid message format. Each message must have 'role' ('user' or 'assistant') and 'content'." },
+            { status: 400 }
+          );
+        }
+      }
+    } else if (body.message && typeof body.message === 'string') {
+      // Simple format: { message: "..." }
+      messages = [{ role: 'user', content: body.message }];
+    } else {
       return NextResponse.json(
-        { error: "Invalid message format" },
+        { error: "Invalid request format. Expected 'messages' array or 'message' string." },
         { status: 400 }
       );
     }
-
+    
+    // Check if the messages array is empty
     if (messages.length === 0) {
       return NextResponse.json(
-        { error: "Messages array is empty" },
+        { error: "No messages provided" },
         { status: 400 }
       );
     }
 
-    const userMessage = messages[messages.length - 1].content;
+    // Extract the last user message
+    const lastMessage = messages[messages.length - 1];
+    
+    // Ensure the last message is from the user
+    if (lastMessage.role !== 'user') {
+      return NextResponse.json(
+        { error: "The last message must be from the user" },
+        { status: 400 }
+      );
+    }
+    
+    const userMessage = lastMessage.content;
 
-    // Check if it's a simple greeting or politeness using the updated function
+    // FILTER 1: Check if it's a simple greeting or politeness
     const politenessCheck = checkPoliteness(userMessage);
-
     if (politenessCheck.isOnlyPoliteness) {
       return NextResponse.json({
         role: "assistant",
@@ -52,96 +84,60 @@ export async function POST(req: NextRequest) {
         metadata: { isGreetingResponse: true }
       });
     }
-    
-    // // Check if it's a bash command
-    // if (isBashCommand(userMessage)) {
-    //   const manPage = await getManPage(userMessage);
-    //   return NextResponse.json({
-    //     role: "assistant",
-    //     content: manPage,
-    //     metadata: { isManPage: true }
-    //   });
-    // }
-    
-    // // Check if it's a repeated question
-    // if (isRepeatedQuestion(messages)) {
-    //   return NextResponse.json({
-    //     role: "assistant",
-    //     content: "I've already answered this question. Please scroll up to find my previous response.",
-    //     metadata: { isRepetitionWarning: true }
-    //   });
-    // }
-    
-    // // Check if it's not a technical question
-    // if (!isTechnicalQuestion(userMessage)) {
-    //   return NextResponse.json({
-    //     role: "assistant",
-    //     content: "I only answer technical questions related to computer science.",
-    //     metadata: { isNonTechnicalResponse: true }
-    //   });
-    // }
-    
-    // // Check if it's a very simple query
-    // const simplicityCheck = isSimpleQuery(userMessage);
-    // if (simplicityCheck.isSimple) {
-    //   const searchUrl = generateSearchUrl(userMessage, simplicityCheck.verySimple);
-    //   return NextResponse.json({
-    //     role: "assistant",
-    //     content: simplicityCheck.verySimple 
-    //       ? "This is a very basic question that can be easily found online." 
-    //       : "This question can be better answered by a quick web search.",
-    //     metadata: { 
-    //       isRedirection: true, 
-    //       redirections: [{ 
-    //         type: simplicityCheck.verySimple ? "letmegooglothat" : "google",
-    //         url: searchUrl,
-    //         message: "Try searching here:"
-    //       }]
-    //     }
-    //   });
-    // }
-    
-    // Send to LLM model with standardized formatting
+
+    // (Reste de votre code inchangé)
+    // ...
+
+    // FILTER 2: Check if it's a technical question
+    const technicalCheck = await filterTechnicalQuestions(userMessage);
+    if (!technicalCheck.shouldAnswer) {
+      // Return the predefined response for non-technical questions
+      return NextResponse.json({
+        role: "assistant",
+        content: technicalCheck.response?.content || "I only answer technical questions related to computer science.",
+        metadata: technicalCheck.response?.metadata || { isNonTechnicalResponse: true }
+      });
+    }
+
+    // If the message passes all filters, send to LLM model with standardized formatting
     const formattedPrompt = await basePromptTemplate.format({
       input: userMessage
     });
+
+    // Invoke the LLM model
+    const rawResponse = await model.invoke(formattedPrompt);
     
-    const response = await model.invoke(formattedPrompt);
-    
-    // Parse the response according to our standard format
     try {
-      const content = typeof response.content === 'string' 
-        ? response.content 
-        : JSON.stringify(response.content);
-        
-      const parsedResponse = await responseParser.parse(content);
+      // Try to parse the response using the structured output parser
+      const parsedContent = responseParser.parse(rawResponse.content);
       
       return NextResponse.json({
         role: "assistant",
-        content: parsedResponse.content,
+        content: parsedContent.content,
         metadata: {
-          confidence: parsedResponse.confidence,
-          ...parsedResponse.redirections && parsedResponse.redirections.length > 0
-            ? { isRedirection: true, redirections: parsedResponse.redirections }
-            : {}
+          confidence: parsedContent.confidence,
+          redirections: parsedContent.redirections || []
         }
       });
-    } catch (parseError) {
-      console.error("Failed to parse model response:", parseError);
       
-      // Fallback if parsing fails
+    } catch (parseError) {
+      console.warn("Failed to parse structured output from LLM:", parseError);
+      
+      // Fallback to raw response if parsing fails
       return NextResponse.json({
         role: "assistant",
-        content: typeof response.content === 'string' 
-          ? response.content 
-          : JSON.stringify(response.content),
-        metadata: { confidence: 50 }
+        content: rawResponse.content,
+        metadata: { 
+          confidence: 70,
+          parsingError: true
+        }
       });
     }
+
   } catch (error) {
-    console.error("Error during processing:", error);
+    console.error("Error in chat API route:", error);
     return NextResponse.json(
-      { error: "An error occurred while processing your request" },
+      { error: "Failed to process your request" },
       { status: 500 }
     );
   }
