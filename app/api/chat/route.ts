@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     let messages: ChatMessage[] = [];
- 
+
     // Handle both message formats
     if (body.messages && Array.isArray(body.messages)) {
       // Standard format: { messages: [...] }
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     // Check if the messages array is empty
     if (messages.length === 0) {
       return NextResponse.json(
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
 
     // Extract the last user message
     const lastMessage = messages[messages.length - 1];
-    
+
     // Ensure the last message is from the user
     if (lastMessage.role !== 'user') {
       return NextResponse.json(
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     const userMessage = lastMessage.content;
 
     // FILTER 1: Check if it's a simple greeting or politeness
@@ -106,11 +106,11 @@ export async function POST(req: NextRequest) {
 
     // Invoke the LLM model
     const rawResponse = await model.invoke(formattedPrompt);
-    
+
     try {
       // Try to parse the response using the structured output parser
       const parsedContent = responseParser.parse(rawResponse.content);
-      
+
       return NextResponse.json({
         role: "assistant",
         content: parsedContent.content,
@@ -119,15 +119,15 @@ export async function POST(req: NextRequest) {
           redirections: parsedContent.redirections || []
         }
       });
-      
+
     } catch (parseError) {
       console.warn("Failed to parse structured output from LLM:", parseError);
-      
+
       // Fallback to raw response if parsing fails
       return NextResponse.json({
         role: "assistant",
         content: rawResponse.content,
-        metadata: { 
+        metadata: {
           confidence: 70,
           parsingError: true
         }
