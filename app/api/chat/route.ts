@@ -15,6 +15,13 @@ export async function POST(req: NextRequest) {
 
         const {isOnlyPoliteness, containsPoliteness} = checkPoliteness(message);
 
+        if (isOnlyPoliteness) {
+            return NextResponse.json(
+                { error: "Please ask a technical question" },
+                { status: 400 }
+            );
+        }
+
 
 
         const response = await getOllamaResponse(message);
