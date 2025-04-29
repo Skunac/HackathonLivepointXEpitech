@@ -11,16 +11,25 @@ function generatePseudo() {
 }
 
 export async function GET() {
-    const res = NextResponse.json({ session: "created" });
-
     const pseudo = generatePseudo();
+    const points = "100";
+
+    const res = new NextResponse(
+        JSON.stringify({ session: "created", pseudo, points }),
+        {
+            status: 200,
+            headers: {
+                "Content-Type": "application/json",
+            },
+        }
+    );
 
     res.cookies.set("pseudo", pseudo, {
         path: "/",
         maxAge: 60 * 60 * 24 * 7, // 1 semaine
     });
 
-    res.cookies.set("points", "100", {
+    res.cookies.set("points", points, {
         path: "/",
         maxAge: 60 * 60 * 24 * 7,
     });
