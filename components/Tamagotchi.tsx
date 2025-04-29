@@ -4,10 +4,11 @@ interface TamagotchiProps {
 
 export default function Tamagotchi({ points }: TamagotchiProps) {
     const getTamagotchiImage = () => {
-        if (points >= 80) return "/tamagotchi/gold-svgrepo-com.svg";
-        if (points >= 50) return "/tamagotchi/insurance-svgrepo-com.svg";
-        if (points >= 20) return "/tamagotchi/loss-svgrepo-com.svg";
-        return "/tamagotchi/stock-svgrepo-com.svg";
+        if (points >= 67) return "/tamagotchi/100-67.png";
+        if (points <= 34) return "/tamagotchi/66-34.png";
+        if (points <= 33) return "/tamagotchi/33-10.png";
+        if (points <= 10) return "/tamagotchi/10-0.png";
+        return "/tamagotchi/FavIcon.svg";
     };
 
     return (

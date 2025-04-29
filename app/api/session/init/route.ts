@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 function generatePseudo() {
     const adjectives = ["Green", "Smart", "Eco", "Fast"];
@@ -10,9 +10,12 @@ function generatePseudo() {
     );
 }
 
-export async function GET() {
-    const pseudo = generatePseudo();
-    const points = "100";
+export async function GET(req: NextRequest) {
+    const pseudoCookie = req.cookies.get("pseudo");
+    const pointsCookie = req.cookies.get("points");
+
+    const pseudo = pseudoCookie?.value || generatePseudo();
+    const points = pointsCookie?.value || "100";
 
     const res = new NextResponse(
         JSON.stringify({ session: "created", pseudo, points }),
@@ -22,15 +25,12 @@ export async function GET() {
         }
     );
 
-    res.cookies.set("pseudo", pseudo, {
-        path: "/",
-        maxAge: 60 * 60 * 24 * 7, // 1 semaine
-    });
-
-    res.cookies.set("points", points, {
-        path: "/",
-        maxAge: 60 * 60 * 24 * 7,
-    });
+    if (!pseudoCookie) {
+        res.cookies.set("pseudo", pseudo, { path: "/", maxAge: 60 * 60 * 24 * 7 });
+    }
+    if (!pointsCookie) {
+        res.cookies.set("points", points, { path: "/", maxAge: 60 * 60 * 24 * 7 });
+    }
 
     return res;
 }
